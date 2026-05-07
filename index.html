@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EL BUEN PROVECHO PRO</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+
+body{
+    font-family:Arial;
+    margin:0;
+    background:#f4f4f4;
+}
+
+header{
+    background:#e63946;
+    color:white;
+    text-align:center;
+    padding:20px;
+}
+
+.container{
+    width:90%;
+    margin:auto;
+    padding:20px;
+}
+
+.menu{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+    transition:0.3s;
+}
+
+.card:hover{
+    transform:scale(1.03);
+}
+
+button{
+    background:#e63946;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:5px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#c1121f;
+}
+
+.carrito,
+.formulario,
+.historial{
+    background:white;
+    padding:20px;
+    margin-top:30px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+input,
+textarea{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    margin-bottom:15px;
+    border:1px solid #ccc;
+    border-radius:5px;
+    box-sizing:border-box;
+}
+
+.item-carrito{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    border-bottom:1px solid #ddd;
+    padding-bottom:10px;
+}
+
+.total{
+    font-size:24px;
+    font-weight:bold;
+    margin-top:20px;
+}
+
+.historial-item{
+    border-bottom:1px solid #ddd;
+    margin-bottom:15px;
+    padding-bottom:15px;
+}
+
+.nequi-box{
+    background:#f0f0f0;
+    padding:15px;
+    border-radius:10px;
+    margin-top:20px;
+}
+
+@media(max-width:768px){
+
+.menu{
+    grid-template-columns:1fr;
+}
+
+.item-carrito{
+    flex-direction:column;
+    align-items:flex-start;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<h1>🍽 EL BUEN PROVECHO PRO</h1>
+<p>Sistema Profesional de Restaurante</p>
+
+</header>
+
+<div class="container">
+
+<h2>🍔 Menú</h2>
+
+<div class="menu" id="menu"></div>
+
+<div class="formulario">
+
+<h2>🚚 Datos del Domicilio</h2>
+
+<input type="text" id="nombreCliente" placeholder="Nombre del cliente">
+
+<input type="text" id="telefonoCliente" placeholder="Teléfono">
+
+<input type="text" id="direccionCliente" placeholder="Dirección">
+
+<textarea id="notasCliente" placeholder="Notas adicionales"></textarea>
+
+<div class="nequi-box">
+
+<h3>💳 Pago por Nequi</h3>
+
+<p>
+Número Nequi del negocio:
+<strong>3242762796</strong>
+</p>
+
+<label>📸 Subir comprobante de pago:</label>
+
+<input type="file" id="comprobantePago" accept="image/*">
+
+</div>
+
+</div>
+
+<div class="carrito">
+
+<h2>🛒 Pedido</h2>
+
+<div id="carrito-items"></div>
+
+<div class="total">
+Total: $<span id="total">0.00</span>
+</div>
+
+<button onclick="pagarPedido()">
+Confirmar Pedido
+</button>
+
+</div>
+
+<div class="historial">
+
+<h2>📜 Historial de Pedidos</h2>
+
+<div id="historialPedidos"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const platos = [
+
+{
+id:1,
+nombre:"Hamburguesa Clásica",
+descripcion:"Con carne, lechuga y tomate",
+precio:8.50
+},
+
+{
+id:2,
+nombre:"Pizza Margarita",
+descripcion:"Queso, tomate y albahaca",
+precio:10.00
+},
+
+{
+id:3,
+nombre:"Pasta Carbonara",
+descripcion:"Con huevo, queso y jamón",
+precio:9.50
+},
+
+{
+id:4,
+nombre:"Ensalada César",
+descripcion:"Lechuga, queso y crutones",
+precio:6.50
+},
+
+{
+id:5,
+nombre:"Sopa de Tomate",
+descripcion:"Cremosa y reconfortante",
+precio:5.00
+},
+
+{
+id:6,
+nombre:"Alitas BBQ",
+descripcion:"Seis alitas crujientes",
+precio:7.50
+},
+
+{
+id:7,
+nombre:"Tabla de Quesos",
+descripcion:"Selección gourmet",
+precio:12.00
+},
+
+{
+id:8,
+nombre:"Tiramisú",
+descripcion:"Clásico italiano",
+precio:5.50
+},
+
+{
+id:9,
+nombre:"Brownie",
+descripcion:"Chocolate con helado",
+precio:6.00
+},
+
+{
+id:10,
+nombre:"Coca Cola",
+descripcion:"330 ml",
+precio:2.00
+}
+
+];
+
+let carrito = [];
+
+const menu = document.getElementById("menu");
+const carritoItems = document.getElementById("carrito-items");
+const totalElemento = document.getElementById("total");
+const historialPedidos = document.getElementById("historialPedidos");
+
+function mostrarMenu(){
+
+menu.innerHTML = "";
+
+platos.forEach(plato => {
+
+menu.innerHTML += `
+
+<div class="card">
+
+<h3>${plato.nombre}</h3>
+
+<p>${plato.descripcion}</p>
+
+<h4>$${plato.precio.toFixed(2)}</h4>
+
+<button onclick="agregarAlCarrito(${plato.id})">
+Agregar
+</button>
+
+</div>
+
+`;
+
+});
+
+}
+
+function agregarAlCarrito(id){
+
+const plato = platos.find(p => p.id === id);
+
+carrito.push(plato);
+
+actualizarCarrito();
+
+}
+
+function eliminarDelCarrito(index){
+
+carrito.splice(index,1);
+
+actualizarCarrito();
+
+}
+
+function actualizarCarrito(){
+
+carritoItems.innerHTML = "";
+
+let total = 0;
+
+carrito.forEach((item,index)=>{
+
+total += item.precio;
+
+carritoItems.innerHTML += `
+
+<div class="item-carrito">
+
+<div>
+<strong>${item.nombre}</strong><br>
+$${item.precio.toFixed(2)}
+</div>
+
+<button onclick="eliminarDelCarrito(${index})">
+Eliminar
+</button>
+
+</div>
+
+`;
+
+});
+
+totalElemento.textContent = total.toFixed(2);
+
+}
+
+function pagarPedido(){
+
+if(carrito.length === 0){
+
+alert("El carrito está vacío");
+
+return;
+
+}
+
+const nombre = document.getElementById("nombreCliente").value;
+const telefono = document.getElementById("telefonoCliente").value;
+const direccion = document.getElementById("direccionCliente").value;
+const notas = document.getElementById("notasCliente").value;
+
+const comprobante = document.getElementById("comprobantePago").files[0];
+
+if(nombre === "" || telefono === "" || direccion === ""){
+
+alert("Completa todos los datos del domicilio");
+
+return;
+
+}
+
+if(!comprobante){
+
+alert("Debes subir el comprobante de pago Nequi");
+
+return;
+
+}
+
+let total = carrito.reduce((acc,item)=>acc + item.precio,0);
+
+const pedido = {
+
+fecha:new Date().toLocaleString(),
+cliente:nombre,
+telefono,
+direccion,
+notas,
+productos:carrito,
+total
+
+};
+
+guardarPedido(pedido);
+
+generarPDF(pedido);
+
+let mensaje = `🍽 *NUEVO PEDIDO* %0A%0A`;
+
+mensaje += `👤 Cliente: ${nombre}%0A`;
+mensaje += `📞 Teléfono: ${telefono}%0A`;
+mensaje += `📍 Dirección: ${direccion}%0A`;
+mensaje += `💳 Pago: Nequi%0A`;
+mensaje += `💰 Total: $${total.toFixed(2)}%0A%0A`;
+
+mensaje += `🛒 *PRODUCTOS:*%0A`;
+
+carrito.forEach(producto=>{
+
+mensaje += `• ${producto.nombre} - $${producto.precio}%0A`;
+
+});
+
+mensaje += `%0A📝 Notas: ${notas}`;
+
+const numeroNegocio = "573242762796";
+
+window.open(`https://wa.me/${numeroNegocio}?text=${mensaje}`);
+
+alert("✅ Pedido enviado correctamente al negocio");
+
+carrito = [];
+
+actualizarCarrito();
+
+document.getElementById("nombreCliente").value = "";
+document.getElementById("telefonoCliente").value = "";
+document.getElementById("direccionCliente").value = "";
+document.getElementById("notasCliente").value = "";
+document.getElementById("comprobantePago").value = "";
+
+}
+
+function guardarPedido(pedido){
+
+let historial = JSON.parse(localStorage.getItem("historialPedidos")) || [];
+
+historial.push(pedido);
+
+localStorage.setItem("historialPedidos", JSON.stringify(historial));
+
+mostrarHistorial();
+
+}
+
+function mostrarHistorial(){
+
+let historial = JSON.parse(localStorage.getItem("historialPedidos")) || [];
+
+historialPedidos.innerHTML = "";
+
+historial.reverse().forEach(pedido=>{
+
+historialPedidos.innerHTML += `
+
+<div class="historial-item">
+
+<h3>Pedido - ${pedido.fecha}</h3>
+
+<p><strong>Cliente:</strong> ${pedido.cliente}</p>
+
+<p><strong>Teléfono:</strong> ${pedido.telefono}</p>
+
+<p><strong>Dirección:</strong> ${pedido.direccion}</p>
+
+<p><strong>Total:</strong> $${pedido.total.toFixed(2)}</p>
+
+</div>
+
+`;
+
+});
+
+}
+
+function generarPDF(pedido){
+
+const { jsPDF } = window.jspdf;
+
+const doc = new jsPDF();
+
+doc.setFontSize(22);
+doc.text("EL BUEN PROVECHO", 20, 20);
+
+doc.setFontSize(12);
+
+doc.text(`Cliente: ${pedido.cliente}`,20,40);
+doc.text(`Teléfono: ${pedido.telefono}`,20,50);
+doc.text(`Dirección: ${pedido.direccion}`,20,60);
+doc.text(`Fecha: ${pedido.fecha}`,20,70);
+
+let y = 90;
+
+doc.text("Productos:",20,y);
+
+y += 10;
+
+pedido.productos.forEach(producto=>{
+
+doc.text(`${producto.nombre} - $${producto.precio}`,20,y);
+
+y += 10;
+
+});
+
+doc.text(`TOTAL: $${pedido.total.toFixed(2)}`,20,y+10);
+
+doc.save("factura.pdf");
+
+}
+
+mostrarMenu();
+
+mostrarHistorial();
+
+</script>
+
+</body>
+</html>
